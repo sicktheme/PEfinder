@@ -1,9 +1,13 @@
 #include <iostream>
 #include <fstream>
+#include <vector>
 #include "headers.h"
 
 #define IMAGE_FILE_MACHINE_I386 0x014C //x86
 #define IMAGE_FILE_MACHINE_AMD64 0x8664 //x64
+
+#define ALIGN_DOWN(x, align) (x & ~(align-1))
+#define ALIGN_UP(x, align) ((x & (align-1))?ALIGN_DOWN(x,align)+align:x)
 
 void testOutPut_(const IMAGE_NT_HEADER32& nt_header64) {
 	std::cout << "signature: 0x" << std::hex << nt_header64.signature << std::endl;
@@ -79,10 +83,28 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 
-	uint32_t optionalHeaderSize = nt_header32.optional_header.size_of_headers;
-	file.seekg(dos_header.e_lfanew + 4 + sizeof(IMAGE_FILE_HEADER) + optionalHeaderSize, std::ios::beg);
+	//uint32_t optionalHeaderSize = nt_header32.optional_header.size_of_headers;
+	//file.seekg(dos_header.e_lfanew + 4 + sizeof(IMAGE_FILE_HEADER) + optionalHeaderSize, std::ios::beg);
 
+	uint16_t sectionOffset = dos_header.e_lfanew + sizeof(uint16_t) + sizeof(IMAGE_FILE_HEADER) + nt_header32.file_header.size_of_optional_header;
+	file.seekg(sectionOffset, std::ios::beg);
+	//std::cout << sectionOffset; //486 // 1E6
 
+	uint8_t numSections = nt_header32.file_header.number_of_section;
+	std::vector<IMAGE_SECTION_HEADER> sections(numSections);
+
+	for (uint8_t i = 0; i < numSections; i++) {
+		file.read(reinterpret_cast<char*>(&sections[i]), sizeof(IMAGE_SECTION_HEADER));
+		if (!file) {
+			std::cerr << "Error reading section #" << i << std::endl;
+			break;
+		}
+		std::string name((char*)sections[i].name, 8);
+		std::cout << "Section: " << i << ": " << name
+			<< ", VA: 0x" << std::hex << sections[i].virtual_addr
+			<< ", RAW: 0x" << std::hex << sections[i].pointer_to_raw_data
+			<< ", Size: " << std::dec << sections[i].size_of_raw_data << " bytes" << std::endl;
+	}
 
 	//testOutPut_(nt_header32);
 

@@ -19,7 +19,7 @@
 #define IMAGE_NUMBEROF_DIRECTORY_ENTRIES 16
 #define IMAGE_SIZEOF_SHORT_NAME 8
 
-/*#define IMAGE_DIRECTORY_ENTRY_EXPORT 0
+#define IMAGE_DIRECTORY_ENTRY_EXPORT 0
 #define IMAGE_DIRECTORY_ENTRY_IMPORT 1
 #define IMAGE_DIRECTORY_ENTRY_RESOURCE 2
 #define IMAGE_DIRECTORY_ENTRY_EXCEPTION 3
@@ -34,7 +34,7 @@
 #define IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT 11
 #define IMAGE_DIRECOTRY_ENTRY_IAT 12
 #define IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT 13
-#define IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR 14*/
+#define IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR 14
 
 /*struct IMAGE_DOS_HEADER;
 struct IMAGE_FILE_HEADER;
@@ -81,8 +81,8 @@ typedef struct _IMAGE_FILE_HEADER { // COFF
 
 #pragma pack(push, 1)
 typedef struct _IMAGE_DATA_DIRECTRY {
-	uint32_t virtual_addr;						// VA
-	uint32_t size;								// size bytes
+	uint32_t virtual_addr;						// RVA на таблицу, которой соответствует элемент массива
+	uint32_t size;								// рамзер таблицы в байтах
 } IMAGE_DATA_DIRECTORY;
 #pragma pack(pop)
 
@@ -151,19 +151,19 @@ typedef struct _IMAGE_DATA_DIRECTRY {
 } IMAGE_OPTIONAL_HEADER64;*/
 
 #pragma pack(push, 1)
-typedef struct _IMAGE_OPTIONAL_HEADER32 {
-	uint16_t magic;							// 0x10b - 32bit/ 0x20b - 64bit (pe32+)
+typedef struct _IMAGE_OPTIONAL_HEADER32 { // // Optional-header 32x
+	uint16_t magic;							// 0x10b - 32x/ 0x20b - 64x (pe32+)
 	uint8_t major_linker_version;
 	uint8_t minor_linker_version;
 	uint32_t size_of_code;
 	uint32_t size_of_initialized_data;
 	uint32_t size_of_uninitialized_data;
 	uint32_t addr_of_entry_point;			// RVA
-	uint32_t base_of_code;
-	uint32_t base_of_data;
+	uint32_t base_of_code;					// RVA .code 
+	uint32_t base_of_data;					// RVA .data
 	uint32_t image_base;					// базовый адрес загрузки
-	uint32_t section_alignment;
-	uint32_t file_alignment;
+	uint32_t section_alignment;				// размер выравнивания секции при выгрузке в виртуальную память (в байтах)
+	uint32_t file_alignment;				// размер выравнивания секции внутри файла (в байтах)
 	uint16_t major_operating_system_version;
 	uint16_t minor_operating_system_version;
 	uint16_t major_image_version;
@@ -171,8 +171,8 @@ typedef struct _IMAGE_OPTIONAL_HEADER32 {
 	uint16_t major_subsystem_version;
 	uint16_t minor_subsystem_version;
 	uint32_t win32_version_value;
-	uint32_t size_of_image;
-	uint32_t size_of_headers;
+	uint32_t size_of_image;					// размер файла в памяти, включая все заголовки (в байтах)
+	uint32_t size_of_headers;				// размер всех загловков выравненный на filealigment
 	uint32_t check_sum;
 	uint16_t sub_system;
 	uint16_t dll_characteristics;
@@ -181,19 +181,20 @@ typedef struct _IMAGE_OPTIONAL_HEADER32 {
 	uint32_t size_of_heap_reserve;
 	uint32_t size_of_heap_commit;
 	uint32_t loader_flags;
-	uint32_t number_of_rva_and_sizes;
+	uint32_t number_of_rva_and_sizes;		// количество каталогов в таблице директорий
+	IMAGE_DATA_DIRECTORY data_directory[IMAGE_NUMBEROF_DIRECTORY_ENTRIES];	// каталог данных (VA+size)
 } IMAGE_OPTIONAL_HEADER32;
 #pragma pack(pop)
 
 #pragma pack(push, 1)
-typedef struct _IMAGE_OPTIONAL_HEADER64 {
+typedef struct _IMAGE_OPTIONAL_HEADER64 {	// Optional-header 64x
 	uint16_t magic;
 	uint8_t major_linker_version;
 	uint8_t minor_linker_version;
 	uint32_t size_of_code;
 	uint32_t size_of_initialized_data;
 	uint32_t size_of_uninitialized_data;
-	uint32_t addr_of_entry_point;
+	uint32_t addr_of_entry_point;			
 	uint32_t base_of_code;
 	uint32_t base_of_data;
 	uint64_t image_base;
@@ -217,11 +218,12 @@ typedef struct _IMAGE_OPTIONAL_HEADER64 {
 	uint64_t size_of_heap_commit;
 	uint32_t loader_flags;
 	uint32_t number_of_rva_and_sizes;
+	IMAGE_DATA_DIRECTORY data_directory[IMAGE_NUMBEROF_DIRECTORY_ENTRIES];
 } IMAGE_OPTIONAL_HEADER64;
 #pragma pack(pop)
 
 #pragma pack(push, 1)
-typedef struct _IMAGE_NT_HEADERS32 {
+typedef struct _IMAGE_NT_HEADERS32 {		// PE-Header 32x
 	uint32_t signature;						// PE signature (start PE) (0x00004550)
 	IMAGE_FILE_HEADER file_header;			// (information for architecture, и тд) COFF
 	IMAGE_OPTIONAL_HEADER32 optional_header;	// (размеры, точки входа, RVA, таблицы импорта/экспорта)
@@ -229,7 +231,7 @@ typedef struct _IMAGE_NT_HEADERS32 {
 #pragma pack(pop)
 
 #pragma pack(push, 1)
-typedef struct _IMAGE_NT_HEADERS64 {
+typedef struct _IMAGE_NT_HEADERS64 {		// PE-Header 64x
 	uint32_t signature;
 	IMAGE_FILE_HEADER file_header;
 	IMAGE_OPTIONAL_HEADER64 optional_header;
@@ -238,16 +240,18 @@ typedef struct _IMAGE_NT_HEADERS64 {
 
 #pragma pack(push, 1)
 typedef struct _IMAGE_SECTION_HEADER {
-	uint8_t name[IMAGE_SIZEOF_SHORT_NAME];	// название секции
-	uint32_t physical_addr;					// 
-	uint32_t virtual_size;					// размер секции в виртуальной памяти
-	uint32_t virtual_addr;					// RVA адрес секции
-	uint32_t size_of_raw_data;				// размер секции в файле. Кратен file_aligment
-	uint32_t pointer_to_raw_data;			// RAW смещение до начала секции. Кратен file_aligment
-	uint32_t pointer_to_relocations;
-	uint32_t pointer_to_linenumbers;
-	uint16_t number_of_relocations;
-	uint16_t number_of_linenumbers;
-	uint32_t characteristics;				// атрибуты доступа к секции и правила для ее загрузки в виртуальную память
+	uint8_t name[IMAGE_SIZEOF_SHORT_NAME]; // название секции
+	union {
+		uint16_t physical_addr;	// адрес файла
+		uint16_t virtual_size;	// общий размер раздела при загрузке в память в байтах. Если больше size_of_raw_data то запонляется нулями
+	} misc;
+	uint32_t virtual_addr;		// адрес первого байта при загрузке в память
+	uint32_t size_of_raw_data;	// рамзер инициаилизрованных данных на диске в байтах (если меньше чем virtual size, оставлашяся часть раздела заполняется нулями)
+	uint32_t pointer_to_raw_data;	//указатель на первую страницу в файле COFF.
+	uint32_t pointer_to_relocations;	// файл, указатель на начало записей перемещения для раздела
+	uint32_t pointer_to_linenumbers;	// указатель на начало строковых записей раздела
+	uint16_t number_of_relocations;		// количество записей о перемещении для раздела
+	uint16_t number_of_linenumbers;		// количество строковых записей для раздела
+	uint32_t characteristics;			// характеристики
 } IMAGE_SECTION_HEADER;
 #pragma pack(pop)
