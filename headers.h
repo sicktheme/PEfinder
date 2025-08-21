@@ -182,7 +182,7 @@ typedef struct _IMAGE_OPTIONAL_HEADER32 { // // Optional-header 32x
 	uint32_t size_of_heap_commit;
 	uint32_t loader_flags;
 	uint32_t number_of_rva_and_sizes;		// количество каталогов в таблице директорий
-	IMAGE_DATA_DIRECTORY data_directory[IMAGE_NUMBEROF_DIRECTORY_ENTRIES];	// каталог данных (VA+size)
+	//IMAGE_DATA_DIRECTORY data_directory[IMAGE_NUMBEROF_DIRECTORY_ENTRIES];	// каталог данных (VA+size)
 } IMAGE_OPTIONAL_HEADER32;
 #pragma pack(pop)
 
@@ -218,7 +218,7 @@ typedef struct _IMAGE_OPTIONAL_HEADER64 {	// Optional-header 64x
 	uint64_t size_of_heap_commit;
 	uint32_t loader_flags;
 	uint32_t number_of_rva_and_sizes;
-	IMAGE_DATA_DIRECTORY data_directory[IMAGE_NUMBEROF_DIRECTORY_ENTRIES];
+	//IMAGE_DATA_DIRECTORY data_directory[IMAGE_NUMBEROF_DIRECTORY_ENTRIES];
 } IMAGE_OPTIONAL_HEADER64;
 #pragma pack(pop)
 
