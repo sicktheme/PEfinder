@@ -49,7 +49,8 @@ typedef struct _IMAGE_DOS_HEADER {
 	uint16_t e_cblp;
 	uint16_t e_cp;
 	uint16_t e_crlc;
-	uint16_t e_cparhdr;
+	uint16_t e_cparhdr; // если будет больше чем поле e_lfanew то файл может не загрузитьс€
+	// размер exe заголовка в параграфах (1 параграф = 200h байтам)
 	uint16_t e_minalloc;
 	uint16_t e_maxalloc;
 	uint16_t e_ss;
@@ -182,7 +183,7 @@ typedef struct _IMAGE_OPTIONAL_HEADER32 { // // Optional-header 32x
 	uint32_t size_of_heap_commit;
 	uint32_t loader_flags;
 	uint32_t number_of_rva_and_sizes;		// количество каталогов в таблице директорий
-	//IMAGE_DATA_DIRECTORY data_directory[IMAGE_NUMBEROF_DIRECTORY_ENTRIES];	// каталог данных (VA+size)
+	IMAGE_DATA_DIRECTORY data_directory[IMAGE_NUMBEROF_DIRECTORY_ENTRIES];	// каталог данных (VA+size)
 } IMAGE_OPTIONAL_HEADER32;
 #pragma pack(pop)
 
@@ -218,7 +219,7 @@ typedef struct _IMAGE_OPTIONAL_HEADER64 {	// Optional-header 64x
 	uint64_t size_of_heap_commit;
 	uint32_t loader_flags;
 	uint32_t number_of_rva_and_sizes;
-	//IMAGE_DATA_DIRECTORY data_directory[IMAGE_NUMBEROF_DIRECTORY_ENTRIES];
+	IMAGE_DATA_DIRECTORY data_directory[IMAGE_NUMBEROF_DIRECTORY_ENTRIES];
 } IMAGE_OPTIONAL_HEADER64;
 #pragma pack(pop)
 
@@ -242,8 +243,8 @@ typedef struct _IMAGE_NT_HEADERS64 {		// PE-Header 64x
 typedef struct _IMAGE_SECTION_HEADER {
 	uint8_t name[IMAGE_SIZEOF_SHORT_NAME]; // название секции
 	union {
-		uint16_t physical_addr;	// адрес файла
-		uint16_t virtual_size;	// общий размер раздела при загрузке в пам€ть в байтах. ≈сли больше size_of_raw_data то запонл€етс€ нул€ми
+		uint32_t physical_addr;	// адрес файла
+		uint32_t virtual_size;	// общий размер раздела при загрузке в пам€ть в байтах. ≈сли больше size_of_raw_data то запонл€етс€ нул€ми
 	} misc;
 	uint32_t virtual_addr;		// адрес первого байта при загрузке в пам€ть
 	uint32_t size_of_raw_data;	// рамзер инициаилизрованных данных на диске в байтах (если меньше чем virtual size, оставлаш€с€ часть раздела заполн€етс€ нул€ми)

@@ -5,6 +5,7 @@
 
 #define IMAGE_FILE_MACHINE_I386 0x014C //x86
 #define IMAGE_FILE_MACHINE_AMD64 0x8664 //x64
+#define SIZE_IMAGE_FILE 0x18h
 
 #define ALIGN_DOWN(x, align) (x & ~(align-1))
 #define ALIGN_UP(x, align) ((x & (align-1))?ALIGN_DOWN(x,align)+align:x)
@@ -98,9 +99,10 @@ int main(int argc, char* argv[]) {
 	//file.seekg(dos_header.e_lfanew + 4 + sizeof(IMAGE_FILE_HEADER) + optionalHeaderSize, std::ios::beg);
 
 	//uint16_t sectionOffset = dos_header.e_lfanew + sizeof(uint16_t) + sizeof(IMAGE_FILE_HEADER) + nt_header32.file_header.size_of_optional_header;
-	uint16_t sectionTableOffset = dos_header.e_lfanew + sizeof(nt_header32.signature) + sizeof(nt_header32.file_header) + nt_header32.file_header.size_of_optional_header;
+	//uint16_t sectionTableOffset = dos_header.e_lfanew + sizeof(nt_header32.signature) + sizeof(nt_header32.file_header) + nt_header32.file_header.size_of_optional_header;
+	uint16_t sectionTableOffset = dos_header.e_lfanew + 0x18 + nt_header32.file_header.size_of_optional_header;
 	file.seekg(sectionTableOffset, std::ios::beg);
-	std::cout << sectionTableOffset; //486 // 1E6
+	std::cout << sectionTableOffset << std::endl; //486 // 1E6 // 1E4(484)
 
 	uint8_t numSections = nt_header32.file_header.number_of_section;
 	std::vector<IMAGE_SECTION_HEADER> sections(numSections);
@@ -125,7 +127,7 @@ int main(int argc, char* argv[]) {
 		std::cout << "Section: " << i << ": " << name
 			<< ", VA: 0x" << std::hex << sections[i].virtual_addr
 			<< ", RAW: 0x" << std::hex << sections[i].pointer_to_raw_data
-			<< ", Size: " << std::dec << sections[i].size_of_raw_data << " bytes"
+			<< ", Size: " << std::hex << sections[i].size_of_raw_data << " bytes"
 			<< ", Characteristics: 0x" << std::hex << sections[i].characteristics
 			<< ", Physical address: 0x" << std::hex << sections[i].misc.physical_addr
 			<< ", Virtual size: 0x" << std::hex << sections[i].misc.virtual_size << std::endl;
