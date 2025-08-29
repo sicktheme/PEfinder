@@ -254,5 +254,81 @@ typedef struct _IMAGE_SECTION_HEADER {
 	uint16_t number_of_relocations;		// количество записей о перемещении для раздела
 	uint16_t number_of_linenumbers;		// количество строковых записей для раздела
 	uint32_t characteristics;			// характеристики
-} IMAGE_SECTION_HEADER;
+} IMAGE_SECTION_HEADER, *PIMAGE_SECTION_HEADER;
 #pragma pack(pop)
+
+#pragma pack(push, 1)
+typedef struct _IMAGE_EXPORT_DIRECTORY {
+	uint32_t characteristics;
+	uint32_t time_date_stamp;
+	uint16_t major_version;
+	uint16_t minor_version;
+	uint32_t name;					// RVA имени dll
+	uint32_t base;
+	uint32_t number_of_func;
+	uint32_t number_of_names;
+	uint32_t addr_of_func;			// указатель на таблицу адресов
+	uint32_t addr_of_names;			// указатель на таблицу имен (функций)
+	uint32_t addr_of_name_ordinals; // указатель на таблицу ординалов
+} IMAGE_EXPORT_DIRECTORY;
+
+#pragma pack(push ,1)
+typedef struct _IMAGE_IMPORT_DESCRIPTOR {
+	/*
+	* Данная таблица помогает соотнести вызовы функций динамических библиотек
+	* с соответствующими адресами.
+	* Standart import - Таблица импорта хранит (массивом) имена функций/ординалов и в какое место
+	* загрузчик должен записать эффективный адрес этой функции (при стандартном импорте)
+	* ====================================================================================================
+	* Bound import - в поля time_date_stamp и forward_chain заносится -1 и информация о связывании
+	* хранится в ячейке datadirectory с индексом image_directory_entry_bound_import (=11). В виртуальную
+	* память приложения выгружается необходимая библиотека и все необходимые адреса "биндятся" еще
+	* на этапе компиляции. При перекомпиляции dll, нужно перекомпилировать само приложение (т.к. адреса
+	* будут изменены)
+	* ====================================================================================================
+	* Delay import - .dll файл прикреплен к исполняемому, но в память выгружается не сразу
+	* а только при первом обращении приложения к символу (выгружаемые элементы из dll).
+	* Программа выполняется в памяти и как только процесс дошел до вызова фукнции из динамической
+	* библиотеки, то вызывается специальный обработчик, который подгружает dll и разносит
+	* эффективные адреса ее функций. DataDirectory[IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT] (=15).
+	*/
+	union {
+		uint32_t characteristics;
+		uint32_t original_first_thunk; // RVA таблицы имен импорта (INT)
+		// INT ссылается на массив структур IMAGE_THUNK_DATA
+	} DUMMYUNIONNAME;
+	uint32_t time_date_stamp; // дата и время
+	uint32_t forwarder_chain; // индекс первого переправленного символа
+	uint32_t name;			  // RVA строки с именем библиотеки
+	uint32_t first_thunk;	  // RVA таблицы адресов имопрта (IAT)
+	// IAT ссылается на массив структур IMAGE_THUNK_DATA
+} IMAGE_IMPORT_DESCRIPTOR;
+
+typedef struct _IMAGE_THUNK_DATA32 {
+	union {
+		uint32_t forwarder_string;
+		uint32_t function;
+		uint32_t ordinal;
+		uint32_t addr_of_data;
+	} ul;
+} IMAGE_THUNK_DATA32;
+
+/*
+* Если импорт происходит по имени, то указатель хранит адрес на структуру
+* _IMAGE_IMPORT_BY_NAME
+*/
+
+typedef struct _IMAGE_IMPORT_BY_NAME {
+	uint16_t hint;		// номер функции
+	uint8_t name[1];	// имя функции
+} IMAGE_IMPORT_BY_NAME;
+
+/*typedef struct _IMAGE_THUNK_DATA64 {
+	union {
+		uint16_t forwarder_string;
+		uint16_t function;
+		uint16_t ordinal;
+		uint16_t addr_of_data;
+	} ul;
+} IMAGE_THUNK_DATA64;*/
+
